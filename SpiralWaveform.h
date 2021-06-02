@@ -353,3 +353,16 @@ inline long SpiralWaveform::getTotalTime() const
 {
     return m_lTotalTime;
 }
+
+extern "C" int calculate_spiral_trajectory(
+    float* pfTraj,
+    long* plTrajSize,
+    long lBaseResolution,
+    long lDwellTime,
+    long lSpiralArms,
+    double dFieldOfView,
+    double dMaxGradAmpl,
+    double dMinRiseTime,
+    double dLarmorConst,
+    double dReadoutOS,
+    double dGradientDelay);

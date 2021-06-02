@@ -1,7 +1,63 @@
-#include "MrServers/MrImaging/seq/a_BEAT_physics/SpiralWaveform.h"
+#if defined(SEQUENCE_CLASS)
+    #include "MrServers/MrImaging/seq/SeqDebug.h" // TRACE_PUT macros
+    #include "MrServers/MrMeasSrv/MeasUtils/MeasMath.h" // M_PI
+    #include "MrServers/MrImaging/seq/a_BEAT_physics/SpiralWaveform.h"
+#elif defined(GADGETRON)
+    #include <cmath>
+    #include "gadgetron/log.h"
+    #include "SpiralWaveform.h"
+#else
+    #include <cmath>
+    #include <cstdio>
+    #include "SpiralWaveform.h"
+#endif
 
-#include "MrServers/MrMeasSrv/MeasUtils/MeasMath.h" // M_PI
-#include "MrServers/MrImaging/seq/SeqDebug.h" // TRACE_PUT macros
+#if defined(SEQUENCE_CLASS)
+    #define INFO_P1(fmt, p1) \
+    { \
+        TRACE_PUT1(TC_INFO, TF_SEQ, fmt, p1); \
+    }
+
+    #define INFO_P2(fmt, p1, p2) \
+    { \
+        TRACE_PUT2(TC_INFO, TF_SEQ, fmt, p1, p2); \
+    }
+
+    #define INFO_P3(fmt, p1, p2, p3) \
+    { \
+        TRACE_PUT3(TC_INFO, TF_SEQ, fmt, p1, p2, p3); \
+    }
+#elif defined(GADGETRON)
+    #define INFO_P1(fmt, p1) \
+    { \
+        GINFO(fmt, p1); \
+    }
+
+    #define INFO_P2(fmt, p1, p2) \
+    { \
+        GINFO(fmt, p1, p2); \
+    }
+
+    #define INFO_P3(fmt, p1, p2, p3) \
+    { \
+        GINFO(fmt, p1, p2, p3); \
+    }
+#else
+    #define INFO_P1(fmt, p1) \
+    { \
+        printf(fmt, p1); \
+    }
+
+    #define INFO_P2(fmt, p1, p2) \
+    { \
+        printf(fmt, p1, p2); \
+    }
+
+    #define INFO_P3(fmt, p1, p2, p3) \
+    { \
+        printf(fmt, p1, p2, p3); \
+    }
+#endif
 
 
 #define GRAD_RASTER_TIME  10
@@ -130,43 +186,43 @@ bool SpiralWaveform::calculate(bool bCalcTraj)
 
     if (m_lBaseResolution <= 0)
     {
-        TRACE_PUT1(TC_INFO, TF_SEQ, "%s base resolution not set", ptModule);
+        INFO_P1("%s base resolution not set\n", ptModule);
         return false;
     }
 
     if (m_lDwellTime <= 0)
     {
-        TRACE_PUT1(TC_INFO, TF_SEQ, "%s dwell time not set", ptModule);
+        INFO_P1("%s dwell time not set\n", ptModule);
         return false;
     }
 
     if (m_lSpiralArms <= 0)
     {
-        TRACE_PUT1(TC_INFO, TF_SEQ, "%s spiral arms not set", ptModule);
+        INFO_P1("%s spiral arms not set\n", ptModule);
         return false;
     }
 
     if (m_dFieldOfView <= 0.0)
     {
-        TRACE_PUT1(TC_INFO, TF_SEQ, "%s base resolution not set", ptModule);
+        INFO_P1("%s field of view not set\n", ptModule);
         return false;
     }
 
     if (m_dMaxGradAmpl <= 0.0)
     {
-        TRACE_PUT1(TC_INFO, TF_SEQ, "%s dwell time not set", ptModule);
+        INFO_P1("%s max grad ampl not set\n", ptModule);
         return false;
     }
 
     if (m_dMinRiseTime <= 0.0)
     {
-        TRACE_PUT1(TC_INFO, TF_SEQ, "%s spiral arms not set", ptModule);
+        INFO_P1("%s min rise time not set\n", ptModule);
         return false;
     }
 
     if (m_bSloppy && m_dSloppyPeriod <= 0.0)
     {
-        TRACE_PUT1(TC_INFO, TF_SEQ, "%s sloppy period not set", ptModule);
+        INFO_P1("%s sloppy period not set\n", ptModule);
         return false;
     }
 
@@ -185,7 +241,7 @@ bool SpiralWaveform::calculate(bool bCalcTraj)
     m_dGradAmpl             = dBandwidth / (m_dLarmorConst * m_dFieldOfView);
     if (m_dGradAmpl > m_dMaxGradAmpl)
     {
-        TRACE_PUT1(TC_INFO, TF_SEQ, "%s spiral waveform would exceed gradient amplitude limits", ptModule);
+        INFO_P1("%s spiral waveform would exceed gradient amplitude limits", ptModule);
         return false;  
     }
 
@@ -265,7 +321,7 @@ bool SpiralWaveform::calculate(bool bCalcTraj)
     {
         if (i >= RASTER_OS * MAX_WAVEFORM_SIZE - 1)
         {
-            TRACE_PUT1(TC_INFO, TF_SEQ, "%s spiral waveform too long", ptModule);
+            INFO_P1("%s spiral waveform too long\n", ptModule);
             return false;
         }
 
@@ -469,7 +525,7 @@ bool SpiralWaveform::calculate(bool bCalcTraj)
 
         if (m_lRampDownTime == 0)
         {
-            TRACE_PUT2( TC_INFO, TF_SEQ, "%s cannot realize requested ramp down time: %d", ptModule, m_lRampDownTime );
+            INFO_P2("%s cannot realize requested ramp down time: %d\n", ptModule, m_lRampDownTime );
             return false;
         }
         
@@ -478,7 +534,7 @@ bool SpiralWaveform::calculate(bool bCalcTraj)
 
         if (dGradDelta > dMaxGradDelta)
         {
-            TRACE_PUT3( TC_INFO, TF_SEQ, "%s cannot realize requested ramp down time = %d, because slew rate limit = %f (mT/m)/ms would be exceeded", ptModule, m_lRampDownTime, m_dMaxSlewRate );
+            INFO_P3("%s cannot realize requested ramp down time = %d, because slew rate limit = %f (mT/m)/ms would be exceeded\n", ptModule, m_lRampDownTime, m_dMaxSlewRate );
             return false;
         }
     }
@@ -500,7 +556,7 @@ bool SpiralWaveform::calculate(bool bCalcTraj)
     {
         if (lJ >= MAX_WAVEFORM_SIZE)
         {
-            TRACE_PUT1(TC_INFO, TF_SEQ, "%s spiral waveform too long", ptModule);
+            INFO_P1("%s spiral waveform too long\n", ptModule);
             return false;
         }
 
@@ -574,6 +630,18 @@ bool SpiralWaveform::calculate(bool bCalcTraj)
         pdTrajRO[lJ] = pdTrajRO[lJ - 1] + dFactor * (m_pdGradRO[lJ] + m_pdGradRO[lJ - 1]) / 2.0;
         pdTrajPE[lJ] = pdTrajPE[lJ - 1] + dFactor * (m_pdGradPE[lJ] + m_pdGradPE[lJ - 1]) / 2.0;
         pdTrajSS[lJ] = pdTrajSS[lJ - 1] + dFactor * (m_pdGradSS[lJ] + m_pdGradSS[lJ - 1]) / 2.0;
+    }
+
+    // convert trajectory from 1/mm (range +- 1 / (2 * pixel size)) to
+    // cycles/pixel (range +- 0.5)
+    double dPixelSizeRO = m_dFieldOfView / m_lBaseResolution;
+    double dPixelSizePE = m_dFieldOfView / m_lBaseResolution;
+    double dPixelSizeSS = m_dSlabThickness / m_lImagesPerSlab;
+    for (lJ = 0; lJ < m_lGradSize; lJ++)
+    {
+        pdTrajRO[lJ] *= dPixelSizeRO;
+        pdTrajPE[lJ] *= dPixelSizePE;
+        pdTrajSS[lJ] *= dPixelSizeSS;
     }
 
     // now interpolate to ADC raster
@@ -734,5 +802,62 @@ void SpiralWaveform::getTrajectoryWaveformSS(float* pfWaveform) const
     for (long lI = 0; lI < m_lTrajSize; lI++)
     {
         pfWaveform[lI] = static_cast<float>(m_pdTrajSS[lI]);
+    }
+}
+
+
+extern "C"
+{
+    int calculate_spiral_trajectory(
+        float* pfTraj,
+        long* plTrajSize,
+        long lBaseResolution,
+        long lDwellTime,
+        long lSpiralArms,
+        double dFieldOfView,
+        double dMaxGradAmpl,
+        double dMinRiseTime,
+        double dLarmorConst,
+        double dReadoutOS,
+        double dGradientDelay)
+    {
+        SpiralWaveform wf;
+        wf.setBaseResolution(lBaseResolution);
+        wf.setDwellTime(lDwellTime);
+        wf.setSpiralArms(lSpiralArms);
+        wf.setFieldOfView(dFieldOfView);
+        wf.setMaxGradAmpl(dMaxGradAmpl);
+        wf.setMinRiseTime(dMinRiseTime);
+        wf.setLarmorConst(dLarmorConst);
+        wf.setReadoutOS(dReadoutOS);
+        wf.setGradientDelay(dGradientDelay);
+
+        if (!wf.calculate(true))
+        {
+            return 1;
+        }
+
+        *plTrajSize = wf.getTrajectoryWaveformSize();
+
+        float* pfTrajRO = new float[*plTrajSize];
+        float* pfTrajPE = new float[*plTrajSize];
+        float* pfTrajSS = new float[*plTrajSize];
+
+        wf.getTrajectoryWaveformRO(pfTrajRO);
+        wf.getTrajectoryWaveformPE(pfTrajPE);
+        wf.getTrajectoryWaveformSS(pfTrajSS);
+
+        for (long lI = 0; lI < *plTrajSize; lI++)
+        {
+            pfTraj[3 * lI + 0] = pfTrajRO[lI];
+            pfTraj[3 * lI + 1] = pfTrajPE[lI];
+            pfTraj[3 * lI + 2] = pfTrajSS[lI];
+        }
+
+        delete[] pfTrajRO;
+        delete[] pfTrajPE;
+        delete[] pfTrajSS;
+
+        return 0;
     }
 }
