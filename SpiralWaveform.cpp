@@ -564,8 +564,8 @@ bool SpiralWaveform::calculate(bool bCalcTraj)
         m_pdGradPE[lJ] = dGradDelta * dDirPE * lR;
         m_pdGradSS[lJ] = dGradDelta * dDirSS * lR;
         dSumGradRO += m_pdGradRO[lJ];
-        dSumGradRO += m_pdGradRO[lJ];
-        dSumGradRO += m_pdGradRO[lJ];
+        dSumGradPE += m_pdGradPE[lJ];
+        dSumGradSS += m_pdGradSS[lJ];
     }
 
     m_lGradSize += lRampDownSize;
