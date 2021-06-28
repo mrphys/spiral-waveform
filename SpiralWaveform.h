@@ -1,3 +1,6 @@
+#ifndef SPIRAL_WAVEFORM_H_
+#define SPIRAL_WAVEFORM_H_
+
 class SpiralWaveform
 {
 public:
@@ -366,3 +369,5 @@ extern "C" int calculate_spiral_trajectory(
     double dLarmorConst,
     double dReadoutOS,
     double dGradientDelay);
+
+#endif  // SPIRAL_WAVEFORM_H_
