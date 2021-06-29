@@ -525,7 +525,7 @@ bool SpiralWaveform::calculate(bool bCalcTraj)
 
         if (m_lRampDownTime == 0)
         {
-            INFO_P2("%s cannot realize requested ramp down time: %d\n", ptModule, m_lRampDownTime );
+            INFO_P2("%s cannot realize requested ramp down time: %ld\n", ptModule, m_lRampDownTime );
             return false;
         }
         
@@ -534,7 +534,7 @@ bool SpiralWaveform::calculate(bool bCalcTraj)
 
         if (dGradDelta > dMaxGradDelta)
         {
-            INFO_P3("%s cannot realize requested ramp down time = %d, because slew rate limit = %f (mT/m)/ms would be exceeded\n", ptModule, m_lRampDownTime, m_dMaxSlewRate );
+            INFO_P3("%s cannot realize requested ramp down time = %ld, because slew rate limit = %f (mT/m)/ms would be exceeded\n", ptModule, m_lRampDownTime, m_dMaxSlewRate );
             return false;
         }
     }
