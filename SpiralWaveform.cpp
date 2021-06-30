@@ -89,9 +89,9 @@ inline long ceildiv(long a, long b)
 
 SpiralWaveform::SpiralWaveform()
   : m_lBaseResolution   (-1)
-  , m_lImagesPerSlab    (-1)
   , m_lDwellTime        (-1)
   , m_lSpiralArms       (-1)
+  , m_lImagesPerSlab    (-1)
   , m_dFieldOfView      (-1.0)
   , m_dSlabThickness    (-1.0)
   , m_dMaxGradAmpl      (-1.0)
@@ -267,7 +267,6 @@ bool SpiralWaveform::calculate(bool bCalcTraj)
     double gx=0, gy=0, gz=0;
     double us_i;
     double dGradMag=0,term;
-    double gsum;
     double krmax, kzmax, krmax2, kzmax2;
     double krlim;
     long i, i0, i1, i_end;
@@ -456,8 +455,8 @@ bool SpiralWaveform::calculate(bool bCalcTraj)
             if (m_eSpiralType == SphDST)
                 kz[i+1] = sqrt(kzmax2*(1.-((kx[i+1]*kx[i+1]+ky[i+1]*ky[i+1])/krmax2))); // stay on surface of ellipsoid
 
-                i++;
-            } // term >= 0
+            i++;
+        } // term >= 0
         else
         {
             // We can't go further without violating the slew rate
