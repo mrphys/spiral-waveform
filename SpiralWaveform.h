@@ -54,9 +54,6 @@ public:
     long getImagesPerSlab() const;
     void setImagesPerSlab(long lImagesPerSlab);
 
-    long getDwellTime() const;
-    void setDwellTime(long lDwellTime);
-
     long getSpiralArms() const;
     void setSpiralArms(long lSpiralArms);
 
@@ -72,14 +69,17 @@ public:
     double getMinRiseTime() const;
     void setMinRiseTime(double dMinRiseTime);
 
-    double getLarmorConst() const;
-    void setLarmorConst(double dLarmorConst);
+    double getDwellTime() const;
+    void setDwellTime(double dDwellTime);
 
     double getReadoutOS() const;
     void setReadoutOS(double dReadoutOS);
 
     double getGradientDelay() const;
     void setGradientDelay(double dGradientDelay);
+
+    double getLarmorConst() const;
+    void setLarmorConst(double dLarmorConst);
 
     SpiralType getSpiralType() const;
     void setSpiralType(SpiralType eSpiralType);
@@ -105,20 +105,20 @@ public:
 protected:
 
     long m_lBaseResolution;
-    long m_lDwellTime;          // [ns]
     long m_lSpiralArms;
     long m_lImagesPerSlab;
 
     double m_dFieldOfView;      // [mm]
     double m_dSlabThickness;    // [mm]
-
+    
     double m_dMaxGradAmpl;      // [mT/m]
     double m_dMinRiseTime;      // [us/(mT/m)]
     double m_dMaxSlewRate;      // [(mT/m)/ms]
-
-    double m_dLarmorConst;      // [MHz / T]
+    
+    double m_dDwellTime;        // [us]
     double m_dReadoutOS;
-    double m_dGradDelay;    // [us]
+    double m_dGradDelay;        // [us]
+    double m_dLarmorConst;      // [MHz / T]
 
     SpiralType m_eSpiralType;
     
@@ -164,16 +164,6 @@ inline long SpiralWaveform::getBaseResolution() const
 inline void SpiralWaveform::setBaseResolution(long lBaseResolution)
 {
     m_lBaseResolution = lBaseResolution;
-}
-
-inline long SpiralWaveform::getDwellTime() const
-{
-    return m_lDwellTime;
-}
-
-inline void SpiralWaveform::setDwellTime(long lDwellTime)
-{
-    m_lDwellTime = lDwellTime;
 }
 
 inline long SpiralWaveform::getSpiralArms() const
@@ -227,14 +217,14 @@ inline void SpiralWaveform::setMinRiseTime(double dMinRiseTime)
     m_dMaxSlewRate = 1.e3 / dMinRiseTime;
 }
 
-inline double SpiralWaveform::getLarmorConst() const
+inline double SpiralWaveform::getDwellTime() const
 {
-    return m_dLarmorConst;
+    return m_dDwellTime;
 }
 
-inline void SpiralWaveform::setLarmorConst(double dLarmorConst)
+inline void SpiralWaveform::setDwellTime(double dDwellTime)
 {
-    m_dLarmorConst = dLarmorConst;
+    m_dDwellTime = dDwellTime;
 }
 
 inline double SpiralWaveform::getReadoutOS() const
@@ -255,6 +245,16 @@ inline double SpiralWaveform::getGradientDelay() const
 inline void SpiralWaveform::setGradientDelay(double dGradientDelay)
 {
     m_dGradDelay = dGradientDelay;
+}
+
+inline double SpiralWaveform::getLarmorConst() const
+{
+    return m_dLarmorConst;
+}
+
+inline void SpiralWaveform::setLarmorConst(double dLarmorConst)
+{
+    m_dLarmorConst = dLarmorConst;
 }
 
 inline SpiralWaveform::SpiralType SpiralWaveform::getSpiralType() const
@@ -361,13 +361,13 @@ extern "C" int calculate_spiral_trajectory(
     float* pfTraj,
     long* plTrajSize,
     long lBaseResolution,
-    long lDwellTime,
     long lSpiralArms,
     double dFieldOfView,
     double dMaxGradAmpl,
     double dMinRiseTime,
-    double dLarmorConst,
+    double dDwellTime,
     double dReadoutOS,
-    double dGradientDelay);
+    double dGradientDelay,
+    double dLarmorConst);
 
 #endif  // SPIRAL_WAVEFORM_H_

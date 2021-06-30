@@ -89,16 +89,16 @@ inline long ceildiv(long a, long b)
 
 SpiralWaveform::SpiralWaveform()
   : m_lBaseResolution   (-1)
-  , m_lDwellTime        (-1)
   , m_lSpiralArms       (-1)
   , m_lImagesPerSlab    (-1)
   , m_dFieldOfView      (-1.0)
   , m_dSlabThickness    (-1.0)
   , m_dMaxGradAmpl      (-1.0)
   , m_dMinRiseTime      (-1.0)
-  , m_dLarmorConst      (GAMMA_1H)
+  , m_dDwellTime        (-1.0)
   , m_dReadoutOS        (2.0)
   , m_dGradDelay        (0.0)
+  , m_dLarmorConst      (GAMMA_1H)
   , m_eSpiralType       (Arch)
   , m_eVDType           (Linear)
   , m_dVDInnerCutoff    (1.0)
@@ -190,12 +190,6 @@ bool SpiralWaveform::calculate(bool bCalcTraj)
         return false;
     }
 
-    if (m_lDwellTime <= 0)
-    {
-        INFO_P1("%s dwell time not set\n", ptModule);
-        return false;
-    }
-
     if (m_lSpiralArms <= 0)
     {
         INFO_P1("%s spiral arms not set\n", ptModule);
@@ -220,6 +214,12 @@ bool SpiralWaveform::calculate(bool bCalcTraj)
         return false;
     }
 
+    if (m_dDwellTime <= 0.0)
+    {
+        INFO_P1("%s dwell time not set\n", ptModule);
+        return false;
+    }
+
     if (m_bSloppy && m_dSloppyPeriod <= 0.0)
     {
         INFO_P1("%s sloppy period not set\n", ptModule);
@@ -236,8 +236,8 @@ bool SpiralWaveform::calculate(bool bCalcTraj)
     double dSliceThickness  = dSlabThickness / static_cast<double>(m_lImagesPerSlab);
 
     // compute gradient amplitude according to the dwell time
-    double dEffDwellTime    = m_lDwellTime * m_dReadoutOS;  // [ns]
-    double dBandwidth       = 1.e9 / dEffDwellTime;         // [Hz]
+    double dEffDwellTime    = m_dDwellTime * m_dReadoutOS;  // [us]
+    double dBandwidth       = 1.e6 / dEffDwellTime;         // [Hz]
     m_dGradAmpl             = dBandwidth / (m_dLarmorConst * m_dFieldOfView);
     if (m_dGradAmpl > m_dMaxGradAmpl)
     {
@@ -604,7 +604,7 @@ bool SpiralWaveform::calculate(bool bCalcTraj)
     // * Calculate k-space trajectory                                           *
     // * ---------------------------------------------------------------------- *
 
-    long lEffDwellTime = static_cast<long>(m_lDwellTime * m_dReadoutOS + 0.5);
+    long lEffDwellTime = static_cast<long>(m_dDwellTime * m_dReadoutOS * 1000.0 + 0.5); // [ns]
     m_lTrajSize = ceildiv(m_lReadOutTime * 1000, lEffDwellTime) * static_cast<long>(m_dReadoutOS + 0.5);
     
     if (!bCalcTraj)
@@ -648,7 +648,7 @@ bool SpiralWaveform::calculate(bool bCalcTraj)
     long lT = 0, lG = 0;
     double dTime;
     double dDeltaTimeGrad = GRAD_RASTER_TIME;
-    double dDeltaTimeADC = m_lDwellTime * 1e-3;
+    double dDeltaTimeADC = m_dDwellTime;
     double dCurrentTimeGrad = 0.0;
     double dCurrentTimeADC = -m_dGradDelay;
     m_lSampToSkip = 0;
@@ -810,26 +810,26 @@ extern "C"
     int calculate_spiral_trajectory(
         float* pfTraj,
         long* plTrajSize,
-        long lBaseResolution,
-        long lDwellTime,
+        long lBaseResolution, 
         long lSpiralArms,
         double dFieldOfView,
         double dMaxGradAmpl,
         double dMinRiseTime,
-        double dLarmorConst,
+        double dDwellTime,
         double dReadoutOS,
-        double dGradientDelay)
+        double dGradientDelay,
+        double dLarmorConst)
     {
         SpiralWaveform wf;
         wf.setBaseResolution(lBaseResolution);
-        wf.setDwellTime(lDwellTime);
         wf.setSpiralArms(lSpiralArms);
         wf.setFieldOfView(dFieldOfView);
         wf.setMaxGradAmpl(dMaxGradAmpl);
         wf.setMinRiseTime(dMinRiseTime);
-        wf.setLarmorConst(dLarmorConst);
+        wf.setDwellTime(dDwellTime);
         wf.setReadoutOS(dReadoutOS);
         wf.setGradientDelay(dGradientDelay);
+        wf.setLarmorConst(dLarmorConst);
 
         if (!wf.calculate(true))
         {
