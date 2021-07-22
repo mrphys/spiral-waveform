@@ -626,15 +626,15 @@ bool SpiralWaveform::calculate(bool bCalcTraj)
     }
 
     // convert trajectory from 1/mm (range +- 1 / (2 * pixel size)) to
-    // cycles/pixel (range +- 0.5)
+    // radians/pixel (range +- pi)
     double dPixelSizeRO = m_dFieldOfView / m_lBaseResolution;
     double dPixelSizePE = m_dFieldOfView / m_lBaseResolution;
     double dPixelSizeSS = m_dSlabThickness / m_lImagesPerSlab;
     for (lJ = 0; lJ < m_lGradSize; lJ++)
     {
-        pdTrajRO[lJ] *= dPixelSizeRO;
-        pdTrajPE[lJ] *= dPixelSizePE;
-        pdTrajSS[lJ] *= dPixelSizeSS;
+        pdTrajRO[lJ] *= dPixelSizeRO * 2.0 * M_PI;
+        pdTrajPE[lJ] *= dPixelSizePE * 2.0 * M_PI;
+        pdTrajSS[lJ] *= dPixelSizeSS * 2.0 * M_PI;
     }
 
     // now interpolate to ADC raster
