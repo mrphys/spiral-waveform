@@ -834,22 +834,37 @@ extern "C"
 
         float* pfTrajRO = new float[*plTrajSize];
         float* pfTrajPE = new float[*plTrajSize];
-        float* pfTrajSS = new float[*plTrajSize];
 
         wf.getTrajectoryWaveformRO(pfTrajRO);
         wf.getTrajectoryWaveformPE(pfTrajPE);
-        wf.getTrajectoryWaveformSS(pfTrajSS);
 
         for (long lI = 0; lI < *plTrajSize; lI++)
         {
-            pfTraj[3 * lI + 0] = pfTrajRO[lI];
-            pfTraj[3 * lI + 1] = pfTrajPE[lI];
-            pfTraj[3 * lI + 2] = pfTrajSS[lI];
+            pfTraj[2 * lI + 0] = pfTrajRO[lI];
+            pfTraj[2 * lI + 1] = pfTrajPE[lI];
         }
 
         delete[] pfTrajRO;
         delete[] pfTrajPE;
-        delete[] pfTrajSS;
+        
+        // float* pfTrajRO = new float[*plTrajSize];
+        // float* pfTrajPE = new float[*plTrajSize];
+        // float* pfTrajSS = new float[*plTrajSize];
+
+        // wf.getTrajectoryWaveformRO(pfTrajRO);
+        // wf.getTrajectoryWaveformPE(pfTrajPE);
+        // wf.getTrajectoryWaveformSS(pfTrajSS);
+
+        // for (long lI = 0; lI < *plTrajSize; lI++)
+        // {
+        //     pfTraj[3 * lI + 0] = pfTrajRO[lI];
+        //     pfTraj[3 * lI + 1] = pfTrajPE[lI];
+        //     pfTraj[3 * lI + 2] = pfTrajSS[lI];
+        // }
+
+        // delete[] pfTrajRO;
+        // delete[] pfTrajPE;
+        // delete[] pfTrajSS;
 
         return 0;
     }
