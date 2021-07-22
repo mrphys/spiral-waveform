@@ -5,7 +5,7 @@ SOURCES = $(wildcard src/*.cpp)
 CFLAGS = -std=c++98 -fPIC -O2
 LDFLAGS = -shared
 
-TARGET = build/spiral_waveform.so
+TARGET = build/libspiral_waveform.so
 
 all: lib
 
