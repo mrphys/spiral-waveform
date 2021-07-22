@@ -60,12 +60,6 @@
 #endif
 
 
-#define GRAD_RASTER_TIME  10
-#define RASTER_OS         10
-#define GAMMA_1H          42.577478518
-#define MAX_WAVEFORM_SIZE 20000
-
-
 inline double min(double a, double b)
 {
     return (a > b) ? b : a;
@@ -98,7 +92,7 @@ SpiralWaveform::SpiralWaveform()
   , m_dDwellTime        (-1.0)
   , m_dReadoutOS        (2.0)
   , m_dGradDelay        (0.0)
-  , m_dLarmorConst      (GAMMA_1H)
+  , m_dLarmorConst      (SWF_GAMMA_1H)
   , m_eSpiralType       (Arch)
   , m_eVDType           (Linear)
   , m_dVDInnerCutoff    (1.0)
@@ -122,16 +116,16 @@ SpiralWaveform::SpiralWaveform()
   , m_lReadOutTime      (-1)
   , m_lTotalTime        (-1)
 {
-    m_dCRT = static_cast<double>(GRAD_RASTER_TIME) / static_cast<double>(RASTER_OS);
+    m_dCRT = static_cast<double>(SWF_GRAD_RASTER_TIME) / static_cast<double>(SWF_RASTER_OVERSAMPLING);
 
     // allocate memory for gradient waveforms
-    m_pdGradRO = new double[MAX_WAVEFORM_SIZE];
-    m_pdGradPE = new double[MAX_WAVEFORM_SIZE];
-    m_pdGradSS = new double[MAX_WAVEFORM_SIZE];
+    m_pdGradRO = new double[SWF_MAX_WAVEFORM_SIZE];
+    m_pdGradPE = new double[SWF_MAX_WAVEFORM_SIZE];
+    m_pdGradSS = new double[SWF_MAX_WAVEFORM_SIZE];
 
-    m_pdTrajRO = new double[MAX_WAVEFORM_SIZE];
-    m_pdTrajPE = new double[MAX_WAVEFORM_SIZE];
-    m_pdTrajSS = new double[MAX_WAVEFORM_SIZE];
+    m_pdTrajRO = new double[SWF_MAX_WAVEFORM_SIZE];
+    m_pdTrajPE = new double[SWF_MAX_WAVEFORM_SIZE];
+    m_pdTrajSS = new double[SWF_MAX_WAVEFORM_SIZE];
 }
 
 
@@ -258,7 +252,7 @@ bool SpiralWaveform::calculate(bool bCalcTraj)
     // the most the gradients can change in 1 raster period
     double dMaxGradDeltaCRT = m_dMaxSlewRate * dCRT;
     // GRT
-    double dGammaGRT        = RASTER_OS * dGammaCRT;
+    double dGammaGRT        = SWF_RASTER_OVERSAMPLING * dGammaCRT;
 
     double dRadialSpacing = 1.0;
     double dAlpha, dPhi, dTheta;
@@ -273,19 +267,19 @@ bool SpiralWaveform::calculate(bool bCalcTraj)
     long lJ;
 
     // allocate memory for t
-    double* kx    = new double[RASTER_OS * MAX_WAVEFORM_SIZE];
-    double* ky    = new double[RASTER_OS * MAX_WAVEFORM_SIZE];
-    double* kz    = new double[RASTER_OS * MAX_WAVEFORM_SIZE];
-    double* gsign = new double[RASTER_OS * MAX_WAVEFORM_SIZE];
+    double* kx    = new double[SWF_RASTER_OVERSAMPLING * SWF_MAX_WAVEFORM_SIZE];
+    double* ky    = new double[SWF_RASTER_OVERSAMPLING * SWF_MAX_WAVEFORM_SIZE];
+    double* kz    = new double[SWF_RASTER_OVERSAMPLING * SWF_MAX_WAVEFORM_SIZE];
+    double* gsign = new double[SWF_RASTER_OVERSAMPLING * SWF_MAX_WAVEFORM_SIZE];
 
     // initialize values
-    for (i = 0; i < RASTER_OS * MAX_WAVEFORM_SIZE; i++) gsign[i] = 1.;
-    for (i = 0; i < RASTER_OS * MAX_WAVEFORM_SIZE; i++) kx[i] = 0.;
-    for (i = 0; i < RASTER_OS * MAX_WAVEFORM_SIZE; i++) ky[i] = 0.;
-    for (i = 0; i < RASTER_OS * MAX_WAVEFORM_SIZE; i++) kz[i] = 0.;
-    for (i = 0; i < MAX_WAVEFORM_SIZE; i++) m_pdGradRO[i] = 0.;
-    for (i = 0; i < MAX_WAVEFORM_SIZE; i++) m_pdGradPE[i] = 0.;
-    for (i = 0; i < MAX_WAVEFORM_SIZE; i++) m_pdGradSS[i] = 0.;
+    for (i = 0; i < SWF_RASTER_OVERSAMPLING * SWF_MAX_WAVEFORM_SIZE; i++) gsign[i] = 1.;
+    for (i = 0; i < SWF_RASTER_OVERSAMPLING * SWF_MAX_WAVEFORM_SIZE; i++) kx[i] = 0.;
+    for (i = 0; i < SWF_RASTER_OVERSAMPLING * SWF_MAX_WAVEFORM_SIZE; i++) ky[i] = 0.;
+    for (i = 0; i < SWF_RASTER_OVERSAMPLING * SWF_MAX_WAVEFORM_SIZE; i++) kz[i] = 0.;
+    for (i = 0; i < SWF_MAX_WAVEFORM_SIZE; i++) m_pdGradRO[i] = 0.;
+    for (i = 0; i < SWF_MAX_WAVEFORM_SIZE; i++) m_pdGradPE[i] = 0.;
+    for (i = 0; i < SWF_MAX_WAVEFORM_SIZE; i++) m_pdGradSS[i] = 0.;
 
     krmax = 0.5/dPixelSize;
     kzmax = 0.5/dSliceThickness;
@@ -318,7 +312,7 @@ bool SpiralWaveform::calculate(bool bCalcTraj)
     /******************************/
     while (kr <= krlim)
     {
-        if (i >= RASTER_OS * MAX_WAVEFORM_SIZE - 1)
+        if (i >= SWF_RASTER_OVERSAMPLING * SWF_MAX_WAVEFORM_SIZE - 1)
         {
             INFO_P1("%s spiral waveform too long\n", ptModule);
             return false;
@@ -476,7 +470,7 @@ bool SpiralWaveform::calculate(bool bCalcTraj)
 
     //********************************************
     // DONE LOOPING FOR SAMPLING PORTION
-    // recast k to g while subsampling by RASTER_OS  
+    // recast k to g while subsampling by SWF_RASTER_OVERSAMPLING  
     //********************************************
     m_pdGradRO[0] = 0.;
     m_pdGradPE[0] = 0.; 
@@ -484,10 +478,10 @@ bool SpiralWaveform::calculate(bool bCalcTraj)
     double dSumGradRO = 0.;
     double dSumGradPE = 0.;
     double dSumGradSS = 0.;
-    for (lJ = 1; lJ <= (i_end / RASTER_OS); lJ++)
+    for (lJ = 1; lJ <= (i_end / SWF_RASTER_OVERSAMPLING); lJ++)
     {
-        i1 = lJ * RASTER_OS;
-        i0 = (lJ - 1) * RASTER_OS;
+        i1 = lJ * SWF_RASTER_OVERSAMPLING;
+        i0 = (lJ - 1) * SWF_RASTER_OVERSAMPLING;
         m_pdGradRO[lJ] = (kx[i1] - kx[i0]) / dGammaGRT;
         m_pdGradPE[lJ] = (ky[i1] - ky[i0]) / dGammaGRT;
         m_pdGradSS[lJ] = (kz[i1] - kz[i0]) / dGammaGRT;
@@ -497,7 +491,7 @@ bool SpiralWaveform::calculate(bool bCalcTraj)
     }
     // readout time
     m_lGradSize = lJ;
-    m_lReadOutTime = lJ * GRAD_RASTER_TIME;
+    m_lReadOutTime = lJ * SWF_GRAD_RASTER_TIME;
 
     // recalculate these ending gradient points
     dGradMag = sqrt(m_pdGradRO[m_lGradSize - 1] * m_pdGradRO[m_lGradSize - 1] +
@@ -515,7 +509,7 @@ bool SpiralWaveform::calculate(bool bCalcTraj)
     // Ramp gradients to zero
     long lRampDownSize = 0;
     double dGradDelta = 0.0;
-    double dMaxGradDelta = m_dMaxSlewRate * 1.0e-3 * GRAD_RASTER_TIME;
+    double dMaxGradDelta = m_dMaxSlewRate * 1.0e-3 * SWF_GRAD_RASTER_TIME;
 
     if (m_lRampDownTime >= 0)
     {
@@ -528,7 +522,7 @@ bool SpiralWaveform::calculate(bool bCalcTraj)
             return false;
         }
         
-        lRampDownSize = m_lRampDownTime / GRAD_RASTER_TIME;
+        lRampDownSize = m_lRampDownTime / SWF_GRAD_RASTER_TIME;
         dGradDelta = dGradMag / lRampDownSize; // [(mT/m) / sample]
 
         if (dGradDelta > dMaxGradDelta)
@@ -545,7 +539,7 @@ bool SpiralWaveform::calculate(bool bCalcTraj)
 
         // Compute time required for the ramp.
         lRampDownSize = static_cast<long>(ceil(dGradMag / dGradDelta) + 0.5);
-        m_lRampDownTime = lRampDownSize * GRAD_RASTER_TIME;
+        m_lRampDownTime = lRampDownSize * SWF_GRAD_RASTER_TIME;
 
         // Update delta to match this duration.
         dGradDelta = dGradMag / lRampDownSize;
@@ -553,7 +547,7 @@ bool SpiralWaveform::calculate(bool bCalcTraj)
 
     for (long lR = lRampDownSize - 1; lR >= 0; lJ++, lR--)
     {
-        if (lJ >= MAX_WAVEFORM_SIZE)
+        if (lJ >= SWF_MAX_WAVEFORM_SIZE)
         {
             INFO_P1("%s spiral waveform too long\n", ptModule);
             return false;
@@ -623,7 +617,7 @@ bool SpiralWaveform::calculate(bool bCalcTraj)
     pdTrajPE[0] = 0.0;
     pdTrajSS[0] = 0.0;
 
-    double dFactor = m_dGradAmpl * m_dLarmorConst * GRAD_RASTER_TIME * 1e-6;    
+    double dFactor = m_dGradAmpl * m_dLarmorConst * SWF_GRAD_RASTER_TIME * 1e-6;    
     for (lJ = 1; lJ < m_lGradSize; lJ++)
     {
         pdTrajRO[lJ] = pdTrajRO[lJ - 1] + dFactor * (m_pdGradRO[lJ] + m_pdGradRO[lJ - 1]) / 2.0;
@@ -647,7 +641,7 @@ bool SpiralWaveform::calculate(bool bCalcTraj)
     // start and spacing times for gradient and ADC
     long lT = 0, lG = 0;
     double dTime;
-    double dDeltaTimeGrad = GRAD_RASTER_TIME;
+    double dDeltaTimeGrad = SWF_GRAD_RASTER_TIME;
     double dDeltaTimeADC = m_dDwellTime;
     double dCurrentTimeGrad = 0.0;
     double dCurrentTimeADC = -m_dGradDelay;

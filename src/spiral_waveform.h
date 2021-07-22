@@ -1,6 +1,11 @@
 #ifndef SPIRAL_WAVEFORM_H_
 #define SPIRAL_WAVEFORM_H_
 
+#define SWF_GRAD_RASTER_TIME        10
+#define SWF_RASTER_OVERSAMPLING     10
+#define SWF_GAMMA_1H                42.577478518
+#define SWF_MAX_WAVEFORM_SIZE       20000
+
 class SpiralWaveform
 {
 public:
