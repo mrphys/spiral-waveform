@@ -4,7 +4,7 @@
 #define SWF_GRAD_RASTER_TIME        10
 #define SWF_RASTER_OVERSAMPLING     10
 #define SWF_GAMMA_1H                42.577478518
-#define SWF_MAX_WAVEFORM_SIZE       20000
+#define SWF_MAX_WAVEFORM_SIZE       100000
 
 class SpiralWaveform
 {
@@ -371,8 +371,12 @@ extern "C" int calculate_spiral_trajectory(
     double dMaxGradAmpl,
     double dMinRiseTime,
     double dDwellTime,
-    double dReadoutOS,
-    double dGradientDelay,
-    double dLarmorConst);
+    double dReadoutOS = 2.0,
+    double dGradientDelay = 0.0,
+    double dLarmorConst = SWF_GAMMA_1H,
+    double dVDInnerCutoff = 1.0,
+    double dVDOuterCutoff = 1.0,
+    double dVDOuterDensity = 1.0,
+    int iVDType = 0);
 
 #endif  // SPIRAL_WAVEFORM_H_

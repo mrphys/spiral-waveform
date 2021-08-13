@@ -228,6 +228,7 @@ bool SpiralWaveform::calculate(bool bCalcTraj)
     double dPixelSize       = dFieldOfView / static_cast<double>(m_lBaseResolution);
     double dSlabThickness   = 1.e-3 * m_dSlabThickness;
     double dSliceThickness  = dSlabThickness / static_cast<double>(m_lImagesPerSlab);
+    double dVDOuterSpacing  = 1.0 / m_dVDOuterDensity;
 
     // compute gradient amplitude according to the dwell time
     double dEffDwellTime    = m_dDwellTime * m_dReadoutOS;  // [us]
@@ -242,8 +243,8 @@ bool SpiralWaveform::calculate(bool bCalcTraj)
     // the next 4 variables are for variable density spirals
     // they create a transition in the radial spacing as the k-space radius goes from 0 to 1, i.e.
     //    0 < kr < m_dVDInnerCutoff : spacing = Nyquist distance
-    // m_dVDInnerCutoff < kr < m_dVDOuterCutoff : spacing increases to m_dVDOuterDensity (affected by m_eVDType)
-    // m_dVDOuterCutoff < kr < 1    : spacing = m_dVDOuterDensity
+    // m_dVDInnerCutoff < kr < m_dVDOuterCutoff : spacing increases to dVDOuterSpacing (affected by m_eVDType)
+    // m_dVDOuterCutoff < kr < 1    : spacing = dVDOuterSpacing
 
     // radial distance per arm to meet the Nyquist limit
     double dNyquist         = static_cast<double>(m_lSpiralArms) / dFieldOfView;
@@ -341,20 +342,20 @@ bool SpiralWaveform::calculate(bool bCalcTraj)
             us_i = (rnorm - m_dVDInnerCutoff) / (m_dVDOuterCutoff - m_dVDInnerCutoff); /* goes from 0 to 1 as rnorm goes from m_dVDInnerCutoff to m_dVDOuterCutoff*/
             if (m_eVDType == Linear)
             {
-                dRadialSpacing = 1. + (m_dVDOuterDensity - 1.) * us_i;
+                dRadialSpacing = 1. + (dVDOuterSpacing - 1.) * us_i;
             }
             else if (m_eVDType == Quadratic)
             {
-                dRadialSpacing = 1. + (m_dVDOuterDensity - 1.) * us_i * us_i;
+                dRadialSpacing = 1. + (dVDOuterSpacing - 1.) * us_i * us_i;
             }
             else if (m_eVDType == Hanning)
             {
-                dRadialSpacing = 1. + (m_dVDOuterDensity - 1.) * 0.5 * (1. - cos(us_i * M_PI));
+                dRadialSpacing = 1. + (dVDOuterSpacing - 1.) * 0.5 * (1. - cos(us_i * M_PI));
             }
         }
         else // rnorm > m_dVDOuterCutoff
         {
-            dRadialSpacing = m_dVDOuterDensity;
+            dRadialSpacing = dVDOuterSpacing;
         } 
 
         // Undersample spiral for Spherical-Distributed Spiral
@@ -812,7 +813,11 @@ extern "C"
         double dDwellTime,
         double dReadoutOS,
         double dGradientDelay,
-        double dLarmorConst)
+        double dLarmorConst,
+        double dVDInnerCutoff,
+        double dVDOuterCutoff,
+        double dVDOuterDensity,
+        int iVDType)
     {
         SpiralWaveform wf;
         wf.setBaseResolution(lBaseResolution);
@@ -824,6 +829,10 @@ extern "C"
         wf.setReadoutOS(dReadoutOS);
         wf.setGradientDelay(dGradientDelay);
         wf.setLarmorConst(dLarmorConst);
+        wf.setVDInnerCutoff(dVDInnerCutoff);
+        wf.setVDOuterCutoff(dVDOuterCutoff);
+        wf.setVDOuterDensity(dVDOuterDensity);
+        wf.setVDType(static_cast<SpiralWaveform::VDType>(iVDType));
 
         if (!wf.calculate(true))
         {

@@ -5,34 +5,38 @@ SOURCES = $(wildcard src/*.cpp)
 
 CFLAGS = -std=c++98 -fPIC -O2
 
-TARGET_SHARED = lib/libspiral_waveform.so
-TARGET_STATIC = lib/libspiral_waveform.a
+TARGET_SHARED = build/libspiral_waveform.so
+TARGET_STATIC = build/libspiral_waveform.a
 TARGET_INCLUDE = include
 
-all: lib lib-static headers
+INSTALL_PREFIX = /usr/local
+
+all: lib lib-static
 
 lib: $(TARGET_SHARED)
 
 $(TARGET_SHARED): $(SOURCES)
-	mkdir -p lib/
+	mkdir -p build/
 	$(CXX) $(CFLAGS) -o $@ $^ -shared
 	
 lib-static: $(TARGET_STATIC)
 
 $(TARGET_STATIC): $(SOURCES)
 	mkdir -p build/
-	mkdir -p lib/
 	$(CXX) -c $(CFLAGS) -o build/spiral_waveform.o $^
 	ar rvs $@ build/spiral_waveform.o
 
-headers: $(TARGET_INCLUDE) $(HEADERS)
+# headers: $(TARGET_INCLUDE) $(HEADERS)
 
-$(TARGET_INCLUDE): $(HEADERS)
-	mkdir -p $(TARGET_INCLUDE)
-	cp -t $@ $^
+# $(TARGET_INCLUDE): $(HEADERS)
+# 	mkdir -p $(TARGET_INCLUDE)
+# 	cp -t $@ $^
+
+install: $(TARGET_SHARED) $(TARGET_STATIC)
+	cp src/spiral_waveform.h $(INSTALL_PREFIX)/include/
+	cp build/libspiral_waveform.so $(INSTALL_PREFIX)/lib
+	cp build/libspiral_waveform.a $(INSTALL_PREFIX)/lib
 
 .PHONY: clean
 clean:
 	rm -rf build/
-	rm -rf lib/
-	rm -rf include/
