@@ -3,7 +3,7 @@ CXX := g++
 HEADERS = $(wildcard src/*.h)
 SOURCES = $(wildcard src/*.cpp)
 
-CFLAGS = -std=c++98 -fPIC -O2
+CFLAGS = -std=c++98 -fPIC -O3 -march=x86-64 -mtune=generic
 
 TARGET_SHARED = build/libspiral_waveform.so
 TARGET_STATIC = build/libspiral_waveform.a
