@@ -1,7 +1,7 @@
 #if defined(SEQUENCE_CLASS)
     #include "MrServers/MrImaging/seq/SeqDebug.h" // TRACE_PUT macros
     #include "MrServers/MrMeasSrv/MeasUtils/MeasMath.h" // M_PI
-    #include "MrServers/MrImaging/seq/a_BEAT_physics/spiral_waveform/src/spiral_waveform.h"
+    #include "MrServers/MrImaging/seq/a_BEAT_physics/SpiralWaveform/src/spiral_waveform.h"
 #elif defined(GADGETRON)
     #include <cmath>
     #include "gadgetron/log.h"
