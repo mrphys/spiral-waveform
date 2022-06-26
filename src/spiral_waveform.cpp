@@ -103,70 +103,20 @@ SpiralWaveform::SpiralWaveform()
   , m_dCRT              (0.0)
   , m_lGradSize         (-1)
   , m_dGradAmpl         (-1.0)
-  , m_pdGradRO          (NULL)
-  , m_pdGradPE          (NULL)
-  , m_pdGradSS          (NULL)
   , m_lTrajSize         (-1)
   , m_lSampToSkip       (-1)
-  , m_pdTrajRO          (NULL)
-  , m_pdTrajPE          (NULL)
-  , m_pdTrajSS          (NULL)
   , m_lRampUpTime       (-1)
   , m_lRampDownTime     (-1)
   , m_lReadOutTime      (-1)
   , m_lTotalTime        (-1)
 {
     m_dCRT = static_cast<double>(SWF_GRAD_RASTER_TIME) / static_cast<double>(SWF_RASTER_OVERSAMPLING);
-
-    // allocate memory for gradient waveforms
-    m_pdGradRO = new double[SWF_MAX_WAVEFORM_SIZE];
-    m_pdGradPE = new double[SWF_MAX_WAVEFORM_SIZE];
-    m_pdGradSS = new double[SWF_MAX_WAVEFORM_SIZE];
-
-    m_pdTrajRO = new double[SWF_MAX_WAVEFORM_SIZE];
-    m_pdTrajPE = new double[SWF_MAX_WAVEFORM_SIZE];
-    m_pdTrajSS = new double[SWF_MAX_WAVEFORM_SIZE];
 }
 
 
 SpiralWaveform::~SpiralWaveform()
 {
-    // release memory
-    if (m_pdGradRO)
-    {
-        delete[] m_pdGradRO;
-        m_pdGradRO = NULL;
-    }
 
-    if (m_pdGradPE)
-    {
-        delete[] m_pdGradPE;
-        m_pdGradPE = NULL;
-    }
-
-    if (m_pdGradSS)
-    {
-        delete[] m_pdGradSS;
-        m_pdGradSS = NULL;
-    }
-
-    if (m_pdTrajRO)
-    {
-        delete[] m_pdTrajRO;
-        m_pdTrajRO = NULL;
-    }
-
-    if (m_pdTrajPE)
-    {
-        delete[] m_pdTrajPE;
-        m_pdTrajPE = NULL;
-    }
-
-    if (m_pdTrajSS)
-    {
-        delete[] m_pdTrajSS;
-        m_pdTrajSS = NULL;
-    }
 }
 
 

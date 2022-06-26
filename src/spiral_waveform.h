@@ -4,7 +4,7 @@
 #define SWF_GRAD_RASTER_TIME        10
 #define SWF_RASTER_OVERSAMPLING     10
 #define SWF_GAMMA_1H                42.577478518
-#define SWF_MAX_WAVEFORM_SIZE       100000
+#define SWF_MAX_WAVEFORM_SIZE       20000
 
 class SpiralWaveform
 {
@@ -143,16 +143,16 @@ protected:
     // gradient waveforms
     long m_lGradSize;
     double m_dGradAmpl;
-    double* m_pdGradRO;
-    double* m_pdGradPE;
-    double* m_pdGradSS;
+    double m_pdGradRO[SWF_MAX_WAVEFORM_SIZE];
+    double m_pdGradPE[SWF_MAX_WAVEFORM_SIZE];
+    double m_pdGradSS[SWF_MAX_WAVEFORM_SIZE];
 
     // k-space trajectory
     long m_lTrajSize;
     long m_lSampToSkip;
-    double* m_pdTrajRO;
-    double* m_pdTrajPE;
-    double* m_pdTrajSS;
+    double m_pdTrajRO[SWF_MAX_WAVEFORM_SIZE];
+    double m_pdTrajPE[SWF_MAX_WAVEFORM_SIZE];
+    double m_pdTrajSS[SWF_MAX_WAVEFORM_SIZE];
 
     // timing
     long m_lRampUpTime;     // [us]
