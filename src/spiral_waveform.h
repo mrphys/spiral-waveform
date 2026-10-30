@@ -106,6 +106,9 @@ public:
 
     double getSloppyPeriod() const;
     void setSloppyPeriod(double dSloppyPeriod);
+
+    bool getIsNewRewinder() const;
+	void setIsNewRewinder (bool bNewRewind);
     
 protected:
 
@@ -126,6 +129,8 @@ protected:
     double m_dLarmorConst;      // [MHz / T]
 
     SpiralType m_eSpiralType;
+
+    bool bUseNewRewinder;
     
     // variable density configuration
     VDType m_eVDType;
@@ -362,9 +367,20 @@ inline long SpiralWaveform::getTotalTime() const
     return m_lTotalTime;
 }
 
+inline bool SpiralWaveform::getIsNewRewinder() const
+{
+    return bUseNewRewinder;
+}
+
+inline void SpiralWaveform::setIsNewRewinder(bool newRewinderVal) 
+{
+    bUseNewRewinder = newRewinderVal;
+}
+
 extern "C" int calculate_spiral_trajectory(
     float* pfTraj,
     long* plTrajSize,
+    long* plTotalTime,  // Total duration of the spiral trajectory, including the ramp down time in us
     long lBaseResolution,
     long lSpiralArms,
     double dFieldOfView,

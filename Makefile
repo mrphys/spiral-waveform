@@ -1,9 +1,11 @@
 CXX := g++
 
 HEADERS = $(wildcard src/*.h)
-SOURCES = $(wildcard src/*.cpp)
+SOURCES = $(wildcard src/*.cpp) \
+          $(wildcard ../RewinderWaveform/*.cpp)
 
 CFLAGS = -std=c++98 -fPIC -O3 -march=x86-64 -mtune=generic
+CFLAGS += -I../RewinderWaveform
 
 TARGET_SHARED = build/libspiral_waveform.so
 TARGET_STATIC = build/libspiral_waveform.a
@@ -21,10 +23,13 @@ $(TARGET_SHARED): $(SOURCES)
 	
 lib-static: $(TARGET_STATIC)
 
-$(TARGET_STATIC): $(SOURCES)
-	mkdir -p build/
-	$(CXX) -c $(CFLAGS) -o build/spiral_waveform.o $^
-	ar rvs $@ build/spiral_waveform.o
+OBJECTS = $(SOURCES:%.cpp=%.o)
+
+$(TARGET_STATIC): $(OBJECTS)
+	ar rvs $@ $(OBJECTS)
+
+%.o: %.cpp
+	$(CXX) -c $(CFLAGS) -I../RewinderWaveform -o $@ $<
 
 # headers: $(TARGET_INCLUDE) $(HEADERS)
 

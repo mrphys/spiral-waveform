@@ -1,7 +1,9 @@
 #if defined(SEQUENCE_CLASS)
-    #include "MrServers/MrImaging/seq/SeqDebug.h" // TRACE_PUT macros
-    #include "MrServers/MrMeasSrv/MeasUtils/MeasMath.h" // M_PI
-    #include "MrServers/MrImaging/seq/a_BEAT_physics/SpiralWaveform/src/spiral_waveform.h"
+    #include "MrImaging/seq/SeqDebug.h"
+    #include "MrMeasSrv/MeasUtils/MeasMath.h"
+    #include "MrImaging/seq/BEAT_physics_XA60/SpiralWaveform/src/spiral_waveform.h"
+    #include "MrImaging/seq/BEAT_physics_XA60/RewinderWaveform/optimize_kernel.h"
+	#include <stdio.h>
 #elif defined(GADGETRON)
     #include <cmath>
     #include "gadgetron/log.h"
@@ -10,22 +12,24 @@
     #include <cmath>
     #include <cstdio>
     #include "spiral_waveform.h"
+    #include "optimize_kernel.h"
+
 #endif
 
 #if defined(SEQUENCE_CLASS)
     #define INFO_P1(fmt, p1) \
     { \
-        TRACE_PUT1(TC_INFO, TF_SEQ, fmt, p1); \
+        SEQ_TRACE_ALWAYS.print( fmt, p1); \
     }
 
     #define INFO_P2(fmt, p1, p2) \
     { \
-        TRACE_PUT2(TC_INFO, TF_SEQ, fmt, p1, p2); \
+        SEQ_TRACE_ALWAYS.print( fmt, p1, p2); \
     }
 
     #define INFO_P3(fmt, p1, p2, p3) \
     { \
-        TRACE_PUT3(TC_INFO, TF_SEQ, fmt, p1, p2, p3); \
+        SEQ_TRACE_ALWAYS.print( fmt, p1, p2, p3); \
     }
 #elif defined(GADGETRON)
     #define INFO_P1(fmt, p1) \
@@ -109,6 +113,7 @@ SpiralWaveform::SpiralWaveform()
   , m_lRampDownTime     (-1)
   , m_lReadOutTime      (-1)
   , m_lTotalTime        (-1)
+  , bUseNewRewinder		(true)
 {
     m_dCRT = static_cast<double>(SWF_GRAD_RASTER_TIME) / static_cast<double>(SWF_RASTER_OVERSAMPLING);
 }
@@ -122,7 +127,7 @@ SpiralWaveform::~SpiralWaveform()
 
 bool SpiralWaveform::calculate(bool bCalcTraj)
 {
-    static const char *ptModule = {"SpiralWaveform::calculate"};
+    static const char *ptModuleSp = {"SpiralWaveform::calculate"};
 
     // * ---------------------------------------------------------------------- *
     // * Check inputs                                                           *
@@ -130,43 +135,43 @@ bool SpiralWaveform::calculate(bool bCalcTraj)
 
     if (m_lBaseResolution <= 0)
     {
-        INFO_P1("%s base resolution not set\n", ptModule);
+        INFO_P1("%s base resolution not set\n", ptModuleSp);
         return false;
     }
 
     if (m_lSpiralArms <= 0)
     {
-        INFO_P1("%s spiral arms not set\n", ptModule);
+        INFO_P1("%s spiral arms not set\n", ptModuleSp);
         return false;
     }
 
     if (m_dFieldOfView <= 0.0)
     {
-        INFO_P1("%s field of view not set\n", ptModule);
+        INFO_P1("%s field of view not set\n", ptModuleSp);
         return false;
     }
 
     if (m_dMaxGradAmpl <= 0.0)
     {
-        INFO_P1("%s max grad ampl not set\n", ptModule);
+        INFO_P1("%s max grad ampl not set\n", ptModuleSp);
         return false;
     }
 
     if (m_dMinRiseTime <= 0.0)
     {
-        INFO_P1("%s min rise time not set\n", ptModule);
+        INFO_P1("%s min rise time not set\n", ptModuleSp);
         return false;
     }
 
     if (m_dDwellTime <= 0.0)
     {
-        INFO_P1("%s dwell time not set\n", ptModule);
+        INFO_P1("%s dwell time not set\n", ptModuleSp);
         return false;
     }
 
     if (m_bSloppy && m_dSloppyPeriod <= 0.0)
     {
-        INFO_P1("%s sloppy period not set\n", ptModule);
+        INFO_P1("%s sloppy period not set\n", ptModuleSp);
         return false;
     }
 
@@ -186,7 +191,7 @@ bool SpiralWaveform::calculate(bool bCalcTraj)
     m_dGradAmpl             = dBandwidth / (m_dLarmorConst * m_dFieldOfView);
     if (m_dGradAmpl > m_dMaxGradAmpl)
     {
-        INFO_P1("%s spiral waveform would exceed gradient amplitude limits", ptModule);
+        INFO_P1("%s spiral waveform would exceed gradient amplitude limits", ptModuleSp);
         return false;  
     }
 
@@ -265,7 +270,7 @@ bool SpiralWaveform::calculate(bool bCalcTraj)
     {
         if (i >= SWF_RASTER_OVERSAMPLING * SWF_MAX_WAVEFORM_SIZE - 1)
         {
-            INFO_P1("%s spiral waveform too long\n", ptModule);
+            INFO_P1("%s spiral waveform too long\n", ptModuleSp);
             return false;
         }
 
@@ -453,67 +458,322 @@ bool SpiralWaveform::calculate(bool bCalcTraj)
     dDirSS = m_pdGradSS[m_lGradSize - 1] / dGradMag;
 
     
-    // * ---------------------------------------------------------------------- *
-    // * Prepare ramp down                                                      *
-    // * ---------------------------------------------------------------------- *
 
-    // Ramp gradients to zero
-    long lRampDownSize = 0;
-    double dGradDelta = 0.0;
-    double dMaxGradDelta = m_dMaxSlewRate * 1.0e-3 * SWF_GRAD_RASTER_TIME;
+	if(getIsNewRewinder() == false)
+	{   
+        // * ---------------------------------------------------------------------- *
+        // * Prepare ramp down                                                      *
+        // * ---------------------------------------------------------------------- *
 
-    if (m_lRampDownTime >= 0)
-    {
-        // A specific ramp time has been requested. Compute the necessary
-        // gradient increment to realize this ramp time.
+        // Ramp gradients to zero
+        long lRampDownSize = 0;
+        double dGradDelta = 0.0;
+        double dMaxGradDelta = m_dMaxSlewRate * 1.0e-3 * SWF_GRAD_RASTER_TIME;
 
-        if (m_lRampDownTime == 0)
+        if (m_lRampDownTime >= 0)
         {
-            INFO_P2("%s cannot realize requested ramp down time: %ld\n", ptModule, m_lRampDownTime );
-            return false;
+            // A specific ramp time has been requested. Compute the necessary
+            // gradient increment to realize this ramp time.
+
+            if (m_lRampDownTime == 0)
+            {
+                INFO_P2("%s cannot realize requested ramp down time: %ld\n", ptModuleSp, m_lRampDownTime );
+                return false;
+            }
+            
+            lRampDownSize = m_lRampDownTime / SWF_GRAD_RASTER_TIME;
+            dGradDelta = dGradMag / lRampDownSize; // [(mT/m) / sample]
+
+            if (dGradDelta > dMaxGradDelta)
+            {
+                INFO_P3("%s cannot realize requested ramp down time = %ld, because slew rate limit = %f (mT/m)/ms would be exceeded\n", ptModuleSp, m_lRampDownTime, m_dMaxSlewRate );
+                return false;
+            }
         }
-        
-        lRampDownSize = m_lRampDownTime / SWF_GRAD_RASTER_TIME;
-        dGradDelta = dGradMag / lRampDownSize; // [(mT/m) / sample]
-
-        if (dGradDelta > dMaxGradDelta)
+        else
         {
-            INFO_P3("%s cannot realize requested ramp down time = %ld, because slew rate limit = %f (mT/m)/ms would be exceeded\n", ptModule, m_lRampDownTime, m_dMaxSlewRate );
-            return false;
-        }
-    }
-    else
-    {
-        // No specific ramp down time requested. Ramp down at the maximum slew
-        // rate.
-        dGradDelta = dMaxGradDelta;
+            // No specific ramp down time requested. Ramp down at the maximum slew
+            // rate.
+            dGradDelta = dMaxGradDelta;
 
-        // Compute time required for the ramp.
-        lRampDownSize = static_cast<long>(ceil(dGradMag / dGradDelta) + 0.5);
-        m_lRampDownTime = lRampDownSize * SWF_GRAD_RASTER_TIME;
+            // Compute time required for the ramp.
+            lRampDownSize = static_cast<long>(ceil(dGradMag / dGradDelta) + 0.5);
+            m_lRampDownTime = lRampDownSize * SWF_GRAD_RASTER_TIME;
 
-        // Update delta to match this duration.
-        dGradDelta = dGradMag / lRampDownSize;
-    }
-
-    for (long lR = lRampDownSize - 1; lR >= 0; lJ++, lR--)
-    {
-        if (lJ >= SWF_MAX_WAVEFORM_SIZE)
-        {
-            INFO_P1("%s spiral waveform too long\n", ptModule);
-            return false;
+            // Update delta to match this duration.
+            dGradDelta = dGradMag / lRampDownSize;
         }
 
-        m_pdGradRO[lJ] = dGradDelta * dDirRO * lR;
-        m_pdGradPE[lJ] = dGradDelta * dDirPE * lR;
-        m_pdGradSS[lJ] = dGradDelta * dDirSS * lR;
-        dSumGradRO += m_pdGradRO[lJ];
-        dSumGradPE += m_pdGradPE[lJ];
-        dSumGradSS += m_pdGradSS[lJ];
-    }
+        for (long lR = lRampDownSize - 1; lR >= 0; lJ++, lR--)
+        {
+            if (lJ >= SWF_MAX_WAVEFORM_SIZE)
+            {
+                INFO_P1("%s spiral waveform too long\n", ptModuleSp);
+                return false;
+            }
 
-    m_lGradSize += lRampDownSize;
+            m_pdGradRO[lJ] = dGradDelta * dDirRO * lR;
+            m_pdGradPE[lJ] = dGradDelta * dDirPE * lR;
+            m_pdGradSS[lJ] = dGradDelta * dDirSS * lR;
+            dSumGradRO += m_pdGradRO[lJ];
+            dSumGradPE += m_pdGradPE[lJ];
+            dSumGradSS += m_pdGradSS[lJ];
+        }
 
+        m_lGradSize += lRampDownSize;
+	}
+	else
+	{
+		// JAS added from here
+/*
+	FILE* f = fopen("X:/n4/pkg/MrServers/MrImaging/seq/a_BEAT_physics_MB_V28_JAS/xGrad.txt","wb");
+	assert(f);
+	fwrite(m_pdGradRO,sizeof(float),m_lGradSize,f); // m_pdGradRO
+	
+	fclose(f); 
+ */
+		// calculate min time for the Gx gradient first
+
+		double maxTime = 4.0;           // RRB how is this number determined?
+		double T_lo = 0.0;              // RRB how is this number determined?
+		double T_range = maxTime-T_lo;
+		double best_time = 999999.9;    // RRB how is this number determined?
+
+        // SEQ_TRACE_ALWAYS.print("Testing TE = ");
+		
+		double dt				= SWF_GRAD_RASTER_TIME * 1e-6;
+		double initGradAmplX		= m_pdGradRO[m_lGradSize - 1]; // / 100.0;
+		double gmaxJ = m_dGradAmpl; //m_dMaxGradAmpl; // / 10.0; // should be about 0.05 [mT/m]
+		double smaxJ = m_dMaxSlewRate*1000.0; // should be about 100.0  [(mT/m)/ms]
+
+        // SEQ_TRACE_ALWAYS.print("dt = %f, initGradAmpl = %f, m_dMaxGradAmpl = %f, gmaxJ = %f, smaxJ = %f", dt, initGradAmplX, m_dMaxGradAmpl, gmaxJ, smaxJ);
+
+		double M0 = m_pdGradRO[0]*dt*1e6;
+		double M1 = 0.0;
+
+		for(int p=1;p<m_lGradSize; p++)
+		{
+			M0 += m_pdGradRO[p]*dt*1e6;
+
+			M1 += (p-1)*1e3*dt * m_pdGradRO[p]*dt*1e6;
+		}
+
+		double t_ss = m_lGradSize * dt;
+		
+        // SEQ_TRACE_ALWAYS.print("M0 = %f, M1 = %f, t_ss = %f, dt = %f", M0, M1, t_ss, dt);
+
+		double tempMP[] ={0, 0, t_ss, -1, -1, -M0, dt*100, 0, 1, t_ss, -1, -1, -M1, dt*100};
+		double *moment_paramsX=tempMP;
+
+//		moment_paramsX[0] = M0; //approx 70
+//		moment_paramsX[1] = M1; // approx 2000
+
+		double* Gx_min    = new double[ SWF_MAX_WAVEFORM_SIZE];
+		int final_NptsX = 0;
+		double T_minX = 99999999.9;		
+
+		while ((T_range*1e-3) > dt)
+		{
+			double TE = T_lo + (T_range)/2.0;
+            // SEQ_TRACE_ALWAYS.print(" TE = %f", TE);
+			
+			double* G;
+			int Npts;
+			double *ddebug;
+			
+			int N_gfix = 2;
+
+			double arr[] = {initGradAmplX, 0.0 };
+			double *gfix = arr;
+
+			double arr2[] = {0.0};
+			double *eddy_par = arr2;
+
+			run_kernel_diff_fixeddt_fixG(&G, &Npts, &ddebug, 0, dt, gmaxJ, smaxJ, TE, 2, moment_paramsX, -1.0, 0.0, 0.0, 0.0, 0, -1.0, 0, eddy_par, -1.0, 2, gfix,  1.0);
+
+			double lim_breakx = ddebug[14];
+
+            // SEQ_TRACE_ALWAYS.print("lim_breakx = %f", lim_breakx);
+
+		    if (lim_breakx == 0.0)
+			{
+                // SEQ_TRACE_ALWAYS.print("(lim_breakx == 0.0 TE = %f", TE);
+
+				maxTime = TE;
+				if(maxTime < best_time)
+				{
+					for(int i=0;i<SWF_MAX_WAVEFORM_SIZE; i++)
+					{
+						Gx_min[i] = 0.0;
+					}
+
+					final_NptsX = Npts;
+					for(int i=0;i<Npts; i++)
+					{
+						Gx_min[i] = G[i];
+					}
+					T_minX = maxTime;
+					best_time = maxTime;
+				}
+			}
+			else
+			{
+				T_lo = TE;
+			}
+			delete[] G;
+			T_range = maxTime-T_lo;
+		}
+        // SEQ_TRACE_ALWAYS.print(" Final TE = f, %f ms, final_NptsX = %d \n", T_minX, final_NptsX);
+
+		//////////////////////////////////////////////////////////
+		// now  calculate min time for the Gy gradient 
+
+		maxTime = 4.0;
+		T_lo = 0.0;
+		T_range = maxTime-T_lo;
+		best_time = 999999.9;
+
+        // SEQ_TRACE_ALWAYS.print(" Testing TE = ");
+		
+		dt					= SWF_GRAD_RASTER_TIME * 1e-6;
+		double initGradAmplY		= m_pdGradPE[m_lGradSize - 1]; // / 100.0;
+		gmaxJ = m_dGradAmpl; //m_dMaxGradAmpl; // / 10.0; // should be about 0.05 [mT/m]
+		smaxJ = m_dMaxSlewRate*1000.0; // should be about 100.0  [(mT/m)/ms]
+
+		// SEQ_TRACE_ALWAYS.print("dt = %f, initGradAmpl = %f, m_dMaxGradAmpl = %f, gmaxJ = %f, smaxJ = %f", dt, initGradAmplY, m_dMaxGradAmpl, gmaxJ, smaxJ);
+
+		M0 = m_pdGradPE[0]*dt*1e6;
+		M1 = 0.0;
+		for(int p=1;p<m_lGradSize; p++)
+		{
+			M0 += m_pdGradPE[p]*dt*1e6;
+			M1 += (p-1)*1e3*dt * m_pdGradPE[p]*dt*1e6;
+		}
+		t_ss = m_lGradSize * dt;
+		
+        // SEQ_TRACE_ALWAYS.print("M0 = %f, M1 = %f, t_ss = %f, dt = %f", M0, M1, t_ss, dt);
+
+		double tempMPy[] ={0, 0, t_ss, -1, -1, -M0, dt*100, 0, 1, t_ss, -1, -1, -M1, dt*100};
+		double *moment_paramsY=tempMPy;
+
+		double* Gy_min    = new double[ SWF_MAX_WAVEFORM_SIZE];
+		int final_NptsY = 0;
+		double T_minY = 99999999.9;		
+
+		while ((T_range*1e-3) > dt)
+		{
+			double TE = T_lo + (T_range)/2.0;
+            // SEQ_TRACE_ALWAYS.print(" TE = %f", TE);
+			
+			double* G;
+			int Npts;
+			double *ddebug;
+			
+			int N_gfix = 2;
+
+			double arr[] = {initGradAmplY, 0.0 };
+			double *gfix = arr;
+
+			double arr2[] = {0.0};
+			double *eddy_par = arr2;
+
+			//TRACE_PUT0(TC_ALWAYS, TF_SEQ,"before run_kernel_diff_fixeddt_fixG");
+			run_kernel_diff_fixeddt_fixG(&G, &Npts, &ddebug, 0, dt, gmaxJ, smaxJ, TE, 2, moment_paramsY, -1.0, 0.0, 0.0, 0.0, 0, -1.0, 0, eddy_par, -1.0, 2, gfix,  1.0);
+			//TRACE_PUT0(TC_ALWAYS, TF_SEQ,"after run_kernel_diff_fixeddt_fixG");
+
+			double lim_breakx = ddebug[14];
+
+            // SEQ_TRACE_ALWAYS.print("lim_breakx = %f", lim_breakx);
+
+		    if (lim_breakx == 0.0)
+			{
+                // SEQ_TRACE_ALWAYS.print("(lim_breakx == 0.0 TE = %f", TE);
+
+				maxTime = TE;
+				if(maxTime < best_time)
+				{
+					for(int i=0;i<SWF_MAX_WAVEFORM_SIZE; i++)
+					{
+						Gy_min[i] = 0.0;
+					}
+
+					final_NptsY = Npts;
+					for(int i=0;i<Npts; i++)
+					{
+						Gy_min[i] = G[i];
+					}
+					T_minY = maxTime;
+					best_time = maxTime;
+				}
+			}
+			else
+			{
+				T_lo = TE;
+			}
+			delete[] G;
+			T_range = maxTime-T_lo;
+		}
+        // SEQ_TRACE_ALWAYS.print(" Final TE = f, %f ms, final_NptYs = %d \n", T_minY, final_NptsY);
+
+
+		//////////////////////////////
+		// now we know which is longer we can prep both to this length
+
+
+		if(final_NptsY > final_NptsX)
+		{
+			// reprep X with timing of Y
+			double arr[] = {initGradAmplX, 0.0 };
+			double *gfix = arr;
+
+			double *ddebug;
+			double arr2[] = {0.0};
+			double *eddy_par = arr2;
+
+			run_kernel_diff_fixeddt_fixG(&Gx_min, &final_NptsX, &ddebug, 0, dt, gmaxJ, smaxJ, T_minY, 2, moment_paramsX, -1.0, 0.0, 0.0, 0.0, 0, -1.0, 0, eddy_par, -1.0, 2, gfix,  1.0);
+		}
+		else
+		{			
+			// reprep Y with timing of X
+			double arr[] = {initGradAmplY, 0.0 };
+			double *gfix = arr;
+
+			double *ddebug;
+			double arr2[] = {0.0};
+			double *eddy_par = arr2;
+
+			run_kernel_diff_fixeddt_fixG(&Gy_min, &final_NptsY, &ddebug, 0, dt, gmaxJ, smaxJ, T_minX, 2, moment_paramsY, -1.0, 0.0, 0.0, 0.0, 0, -1.0, 0, eddy_par, -1.0, 2, gfix,  1.0);
+		}
+
+        // SEQ_TRACE_ALWAYS.print(" X: Final TE =  %f ms, X final_Npts = %d \n", T_minX, final_NptsX);
+        // SEQ_TRACE_ALWAYS.print("YX: Final TE =  %f ms, Y final_Npts = %d \n", T_minY, final_NptsY);
+
+		int final_Npts = final_NptsX;
+		if(final_NptsY > final_NptsY)
+		{
+            // SEQ_TRACE_ALWAYS.print("THIS SHOULD NEVER HAPPEN, as final_NptsY > final_NptsY. X: Final final_Npts =  %f , Y final_Npts = %d \n", final_NptsX, final_NptsY);
+		}
+
+
+
+
+		//double dGradDeltaPE = m_pdGradPE[m_lGradSize-1] / final_Npts; // [(mT/m) / sample]
+		//double dGradDeltaSS = m_pdGradSS[m_lGradSize-1] / final_Npts; // [(mT/m) / sample]
+
+		for (long lR = 0; lR < final_Npts; lR++)
+		{
+			m_pdGradRO[m_lGradSize+lR] = Gx_min[lR];
+			m_pdGradPE[m_lGradSize+lR] = Gy_min[lR];
+			m_pdGradSS[m_lGradSize+lR] = 0.0;
+		}
+
+		m_lRampDownTime = final_Npts * SWF_GRAD_RASTER_TIME;
+
+		m_lGradSize += final_Npts;
+
+		delete[] Gx_min;
+		delete[] Gy_min;
+	}
     
     // * ---------------------------------------------------------------------- *
     // * Calculate arbitrary gradient waveforms, if necessary                   *
@@ -755,6 +1015,7 @@ extern "C"
     int calculate_spiral_trajectory(
         float* pfTraj,
         long* plTrajSize,
+        long* plTotalTime,
         long lBaseResolution, 
         long lSpiralArms,
         double dFieldOfView,
@@ -790,6 +1051,7 @@ extern "C"
         }
 
         *plTrajSize = wf.getTrajectoryWaveformSize();
+        *plTotalTime = wf.getTotalTime();
 
         float* pfTrajRO = new float[*plTrajSize];
         float* pfTrajPE = new float[*plTrajSize];
