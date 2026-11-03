@@ -544,7 +544,7 @@ bool SpiralWaveform::calculate(bool bCalcTraj)
 		double dt				= SWF_GRAD_RASTER_TIME * 1e-6;
 		double initGradAmplX		= m_pdGradRO[m_lGradSize - 1]; // / 100.0;
 		double gmaxJ = m_dGradAmpl; //m_dMaxGradAmpl; // / 10.0; // should be about 0.05 [mT/m]
-		double smaxJ = m_dMaxSlewRate*1000.0; // should be about 100.0  [(mT/m)/ms]
+		double smaxJ = 0.68*m_dMaxSlewRate*1000.0/0.8; // should be about 100.0  [(mT/m)/ms]
 
         // SEQ_TRACE_ALWAYS.print("dt = %f, initGradAmpl = %f, m_dMaxGradAmpl = %f, gmaxJ = %f, smaxJ = %f", dt, initGradAmplX, m_dMaxGradAmpl, gmaxJ, smaxJ);
 
